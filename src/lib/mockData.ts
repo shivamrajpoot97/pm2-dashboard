@@ -141,6 +141,10 @@ export function generateMockPM2Data(): PM2Data {
   };
 }
 
+// Export static mock data for Vercel compatibility
+export const mockProcesses = Array.from({ length: 8 }, (_, i) => generateRandomProcess(i));
+export const mockSystemInfo = generateSystemInfo();
+
 // Generate historical chart data
 export function generateChartData(hours: number = 24): ChartDataPoint[] {
   const data: ChartDataPoint[] = [];

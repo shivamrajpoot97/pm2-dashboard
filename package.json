@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare-vercel": "node scripts/prepare-for-vercel.js prepare",
+    "revert-vercel": "node scripts/prepare-for-vercel.js revert",
+    "deploy-vercel": "npm run prepare-vercel && vercel --prod",
+    "build-vercel": "npm run prepare-vercel && npm run build"
   },
   "dependencies": {
     "next": "16.0.3",

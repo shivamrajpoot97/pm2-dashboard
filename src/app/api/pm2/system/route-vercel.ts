@@ -12,8 +12,8 @@ export async function GET() {
       const systemInfo = {
         hostname: 'vercel-demo-server',
         platform: 'linux',
-        arch: 'x64',
-        uptime: mockSystemInfo.uptime + Math.floor((Date.now() - (mockSystemInfo as any).timestamp || 0) / 1000),
+        arch: 'x64' as const,
+        uptime: mockSystemInfo.uptime + Math.floor(Math.random() * 3600), // Add some variance
         totalmem: mockSystemInfo.totalmem,
         freemem: mockSystemInfo.freemem + (Math.random() * 1000000000),
         loadavg: mockSystemInfo.loadavg.map(load => Math.max(0, load + (Math.random() - 0.5) * 0.5)),

@@ -68,7 +68,7 @@ function getDemoData() {
 
   const system: SystemInfo = {
     hostname: isVercelOrDemo ? 'vercel-demo-server' : os.hostname(),
-    uptime: mockSystemInfo.uptime + Math.floor((Math.random() * 3600 * 1000) / 1000),
+    uptime: mockSystemInfo.uptime + Math.floor(Math.random() * 3600), // Add some variance
     totalmem: mockSystemInfo.totalmem,
     freemem: mockSystemInfo.freemem + (Math.random() * 1000000000), // Simulate changing free memory
     loadavg: mockSystemInfo.loadavg.map(load => Math.max(0, load + (Math.random() - 0.5) * 0.5)),

@@ -398,7 +398,7 @@ export function ProcessProfiling({ processId, processName, processDetails }: Pro
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             <span className="ml-3 text-gray-400">Loading profiling data...</span>
           </div>
-        ) : profilingData?.profiles?.length > 0 ? (
+        ) : (profilingData?.profiles && profilingData.profiles.length > 0) ? (
           <div className="space-y-4">
             {/* Chart Visualization */}
             <ProfilingChart 

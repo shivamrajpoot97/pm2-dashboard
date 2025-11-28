@@ -19,7 +19,7 @@ async function getGitInfo() {
     // Get current branch
     const { stdout: currentBranch } = await execAsync('git branch --show-current 2>/dev/null || echo "unknown"');
     
-    let parsedCommitInfo = {};
+    let parsedCommitInfo: any = {};
     try {
       parsedCommitInfo = JSON.parse(commitInfo.trim() || '{}');
     } catch {

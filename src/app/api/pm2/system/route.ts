@@ -1,93 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import os from 'os';
-import { mockSystemInfo } from '@/lib/mockData';
+import fs from 'fs/promises';
 
-// Check if running on Vercel or in demo mode
-const isVercelOrDemo = process.env.VERCEL_ENV || process.env.DEMO_MODE === 'true';
+const execAsync = promisify(exec);
 
 export async function GET() {
   try {
-    if (isVercelOrDemo) {
-      // Return demo system information
-      const systemInfo = {
-        hostname: 'vercel-demo-server',
-        platform: 'linux',
-        arch: 'x64',
-        uptime: mockSystemInfo.uptime + Math.floor((Date.now() - (mockSystemInfo as any).timestamp || 0) / 1000),
-        totalmem: mockSystemInfo.totalmem,
-        freemem: mockSystemInfo.freemem + (Math.random() * 1000000000),
-        loadavg: mockSystemInfo.loadavg.map(load => Math.max(0, load + (Math.random() - 0.5) * 0.5)),
-        cpu_count: mockSystemInfo.cpu_count,
-        cpu_model: 'Intel(R) Xeon(R) CPU @ 2.20GHz (Demo)',
-        node_version: process.version,
-        pm2_version: '5.3.0 (Demo)',
-        pm2_home: '/tmp/.pm2'
-      };
-      
-      const processSummary = {
-        total: 8,
-        online: 6,
-        stopped: 1,
-        errored: 1,
-        stopping: 0,
-        launching: 0
-      };
-      
-      const memoryUsage = process.memoryUsage();
-      const systemMemory = {
-        total: systemInfo.totalmem,
-        free: systemInfo.freemem,
-        used: systemInfo.totalmem - systemInfo.freemem,
-        usage_percent: ((systemInfo.totalmem - systemInfo.freemem) / systemInfo.totalmem) * 100,
-        node_process: {
-          rss: memoryUsage.rss,
-          heapTotal: memoryUsage.heapTotal,
-          heapUsed: memoryUsage.heapUsed,
-          external: memoryUsage.external,
-          arrayBuffers: memoryUsage.arrayBuffers
-        }
-      };
-      
-      const activeInterfaces = [
-        {
-          name: 'eth0',
-          addresses: [
-            {
-              address: '10.0.0.1',
-              netmask: '255.255.255.0',
-              family: 'IPv4',
-              mac: '02:42:ac:11:00:02',
-              internal: false
-            }
-          ]
-        }
-      ];
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          pm2: {
-            status: 'online',
-            version: '5.3.0 (Demo)',
-            home: '/tmp/.pm2',
-            process_summary: processSummary
-          },
-          system: systemInfo,
-          memory: systemMemory,
-          network: activeInterfaces,
-          disk: {
-            logs_size: '42.3M',
-            logs_path: '/tmp/.pm2/logs'
-          },
-          timestamp: Date.now(),
-          demoMode: true,
-          message: 'This is demo data. Deploy to a server with PM2 for real system monitoring.'
-        }
-      });
+    // Get PM2 daemon status
+    let pm2Status = 'unknown';
+    let pm2Version = 'unknown';
+    let pm2Home = process.env.PM2_HOME || '';
+    
+    try {
+      const { stdout: statusOutput } = await execAsync('pm2 ping');
+      pm2Status = statusOutput.includes('pong') ? 'online' : 'offline';
+    } catch (error) {
+      pm2Status = 'offline';
     }
     
-    // Fallback for non-Vercel environments (limited functionality)
-    const memoryUsage = process.memoryUsage();
+    try {
+      const { stdout: versionOutput } = await execAsync('pm2 --version');
+      pm2Version = versionOutput.trim();
+    } catch (error) {
+      // PM2 not installed or not in PATH
+    }
+    
+    // Get system information
     const systemInfo = {
       hostname: os.hostname(),
       platform: os.platform(),
@@ -99,10 +39,76 @@ export async function GET() {
       cpu_count: os.cpus().length,
       cpu_model: os.cpus()[0]?.model || 'Unknown',
       node_version: process.version,
-      pm2_version: 'not installed',
-      pm2_home: ''
+      pm2_version: pm2Version,
+      pm2_home: pm2Home
     };
     
+    // Get process count and status summary
+    let processSummary = {
+      total: 0,
+      online: 0,
+      stopped: 0,
+      errored: 0,
+      stopping: 0,
+      launching: 0
+    };
+    
+    try {
+      const { stdout } = await execAsync('pm2 jlist');
+      if (stdout.trim()) {
+        const processes = JSON.parse(stdout);
+        processSummary.total = processes.length;
+        
+        processes.forEach((proc: any) => {
+          const status = proc.pm2_env?.status || 'unknown';
+          switch (status) {
+            case 'online':
+              processSummary.online++;
+              break;
+            case 'stopped':
+              processSummary.stopped++;
+              break;
+            case 'errored':
+              processSummary.errored++;
+              break;
+            case 'stopping':
+              processSummary.stopping++;
+              break;
+            case 'launching':
+              processSummary.launching++;
+              break;
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Could not fetch process summary:', error);
+    }
+    
+    // Get disk usage for PM2 logs directory
+    let diskUsage = null;
+    try {
+      const pm2LogsPath = pm2Home ? `${pm2Home}/logs` : os.homedir() + '/.pm2/logs';
+      const { stdout: duOutput } = await execAsync(`du -sh "${pm2LogsPath}" 2>/dev/null || echo "0K"`);
+      diskUsage = {
+        logs_size: duOutput.split('\t')[0] || '0K',
+        logs_path: pm2LogsPath
+      };
+    } catch (error) {
+      // Disk usage not available
+    }
+    
+    // Get network information
+    const networkInterfaces = os.networkInterfaces();
+    const activeInterfaces = Object.keys(networkInterfaces)
+      .filter(name => name !== 'lo' && networkInterfaces[name])
+      .map(name => ({
+        name,
+        addresses: networkInterfaces[name]?.filter(addr => !addr.internal) || []
+      }))
+      .filter(iface => iface.addresses.length > 0);
+    
+    // Memory usage breakdown
+    const memoryUsage = process.memoryUsage();
     const systemMemory = {
       total: systemInfo.totalmem,
       free: systemInfo.freemem,
@@ -121,24 +127,16 @@ export async function GET() {
       success: true,
       data: {
         pm2: {
-          status: 'offline',
-          version: 'not installed',
-          home: '',
-          process_summary: {
-            total: 0,
-            online: 0,
-            stopped: 0,
-            errored: 0,
-            stopping: 0,
-            launching: 0
-          }
+          status: pm2Status,
+          version: pm2Version,
+          home: pm2Home,
+          process_summary: processSummary
         },
         system: systemInfo,
         memory: systemMemory,
-        network: [],
-        disk: null,
-        timestamp: Date.now(),
-        message: 'PM2 not available. Install PM2 for full functionality.'
+        network: activeInterfaces,
+        disk: diskUsage,
+        timestamp: Date.now()
       }
     });
   } catch (error: any) {
@@ -147,57 +145,64 @@ export async function GET() {
       { 
         success: false, 
         error: 'Failed to fetch system information',
-        message: error.message,
-        demoMode: isVercelOrDemo
+        message: error.message 
       },
       { status: 500 }
     );
   }
 }
 
-// POST endpoint for system operations (demo mode)
+// POST endpoint for system operations
 export async function POST(request: NextRequest) {
   try {
     const { action } = await request.json();
     
-    if (isVercelOrDemo) {
-      // Simulate system operations in demo mode
-      const actions: { [key: string]: string } = {
-        'kill': 'PM2 daemon killed (demo)',
-        'resurrect': 'PM2 processes resurrected (demo)',
-        'save': 'PM2 process list saved (demo)',
-        'flush': 'PM2 logs flushed (demo)',
-        'reload-logs': 'PM2 logs reloaded (demo)',
-        'update': 'PM2 daemon updated (demo)'
-      };
-      
-      const message = actions[action] || `Unknown system action: ${action} (demo)`;
-      
-      return NextResponse.json({
-        success: true,
-        message,
-        output: `[DEMO] System operation '${action}' completed successfully`,
-        error: '',
-        demoMode: true
-      });
+    let command = '';
+    let message = '';
+    
+    switch (action) {
+      case 'kill':
+        command = 'pm2 kill';
+        message = 'PM2 daemon killed';
+        break;
+      case 'resurrect':
+        command = 'pm2 resurrect';
+        message = 'PM2 processes resurrected';
+        break;
+      case 'save':
+        command = 'pm2 save';
+        message = 'PM2 process list saved';
+        break;
+      case 'flush':
+        command = 'pm2 flush';
+        message = 'PM2 logs flushed';
+        break;
+      case 'reload-logs':
+        command = 'pm2 reloadLogs';
+        message = 'PM2 logs reloaded';
+        break;
+      case 'update':
+        command = 'pm2 update';
+        message = 'PM2 daemon updated';
+        break;
+      default:
+        throw new Error(`Unknown system action: ${action}`);
     }
     
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'System operations not available',
-        message: 'This environment does not support PM2 system operations.',
-        demoMode: false
-      },
-      { status: 501 }
-    );
+    const { stdout, stderr } = await execAsync(command);
+    
+    return NextResponse.json({
+      success: true,
+      message,
+      output: stdout,
+      error: stderr
+    });
   } catch (error: any) {
     return NextResponse.json(
       { 
         success: false, 
         error: 'Failed to execute system command',
-        message: error.message,
-        demoMode: isVercelOrDemo
+        message: error.message 
       },
       { status: 500 }
     );

@@ -9,9 +9,12 @@ import { SystemMetrics } from '@/components/SystemMetrics';
 import { LogsViewer } from '@/components/LogsViewer';
 import { DeploymentModal } from '@/components/DeploymentModal';
 import { LinkedServers } from '@/components/LinkedServers';
+import { SystemProfiling } from '@/components/SystemProfiling';
+import { ProcessDetailsModal } from '@/components/ProcessDetailsModal';
+import { RealTimeMetrics } from '@/components/RealTimeMetrics';
 import { PM2Data, ChartDataPoint } from '@/types/pm2';
 import { generateChartData } from '@/lib/mockData';
-import { Plus, Link } from 'lucide-react';
+import { Plus, Link, TrendingUp } from 'lucide-react';
 
 export default function Dashboard() {
   const [pm2Data, setPm2Data] = useState<PM2Data | null>(null);
@@ -22,10 +25,14 @@ export default function Dashboard() {
   const [showLogs, setShowLogs] = useState(false);
   const [showDeployment, setShowDeployment] = useState(false);
   const [showLinkedServers, setShowLinkedServers] = useState(false);
+  const [showSystemProfiling, setShowSystemProfiling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkedServersCount, setLinkedServersCount] = useState(0);
   const [dataSource, setDataSource] = useState<'local' | 'linked'>('local');
   const [currentServerName, setCurrentServerName] = useState<string | null>(null);
+  const [showProcessDetails, setShowProcessDetails] = useState(false);
+  const [selectedProcessForDetails, setSelectedProcessForDetails] = useState<number | null>(null);
+  
   // Fetch real PM2 data
   const fetchPM2Data = async () => {
     try {
@@ -102,7 +109,7 @@ export default function Dashboard() {
     setIsRefreshing(false);
   };
 
-  const handleProcessAction = async (action: string, processId: number) => {
+  const handleProcessAction = async (action: string, processId: number, options?: any) => {
     const process = pm2Data?.processes.find(p => p.pm_id === processId);
     
     try {
@@ -112,12 +119,15 @@ export default function Dashboard() {
         case 'restart':
         case 'delete':
         case 'reload':
+        case 'scale':
+        case 'reset':
+        case 'flush':
           const response = await fetch('/api/pm2', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ action, processId })
+            body: JSON.stringify({ action, processId, options })
           });
           
           const result = await response.json();
@@ -140,9 +150,8 @@ export default function Dashboard() {
           break;
           
         case 'details':
-          // Open process details (could be a modal or new page)
-          console.log(`Show details for process ${processId}`);
-          // You could navigate to /process/${processId} or open a modal
+          setSelectedProcessForDetails(processId);
+          setShowProcessDetails(true);
           break;
           
         default:
@@ -208,6 +217,13 @@ export default function Dashboard() {
                 <Link className="h-4 w-4" />
                 <span>Link Server</span>
               </button>
+              <button
+                onClick={() => setShowSystemProfiling(true)}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md text-sm font-medium transition-colors flex items-center space-x-2"
+              >
+                <TrendingUp className="h-4 w-4" />
+                <span>System Profiling</span>
+              </button>
             </div>
           </div>
         </div>
@@ -233,6 +249,7 @@ export default function Dashboard() {
       />
       
       <main className="p-6 space-y-6">
+        {/* Real-time Metrics */}
         {/* Action Bar */}
         {/* Server Status Banner */}
         {dataSource === 'linked' && currentServerName && (
@@ -275,6 +292,13 @@ export default function Dashboard() {
             >
               <Plus className="h-4 w-4" />
               <span>Deploy App</span>
+            </button>
+            <button
+              onClick={() => setShowSystemProfiling(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-md text-sm font-medium transition-colors"
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span>System Profiling</span>
             </button>
           </div>
         </div>
@@ -325,6 +349,23 @@ export default function Dashboard() {
           setShowLogs(false);
           setSelectedProcess(null);
         }}
+      />
+
+      {/* System Profiling Modal */}
+      <SystemProfiling
+        isOpen={showSystemProfiling}
+        onClose={() => setShowSystemProfiling(false)}
+      />
+
+      {/* Process Details Modal */}
+      <ProcessDetailsModal
+        processId={selectedProcessForDetails}
+        isOpen={showProcessDetails}
+        onClose={() => {
+          setShowProcessDetails(false);
+          setSelectedProcessForDetails(null);
+        }}
+        onAction={handleProcessAction}
       />
     </div>
   );

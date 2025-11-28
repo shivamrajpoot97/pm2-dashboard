@@ -4,6 +4,129 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Check if running on Vercel or in demo mode
+const isVercelOrDemo = process.env.VERCEL_ENV || process.env.DEMO_MODE === 'true';
+
+// Helper function to get git information
+async function getGitInfo() {
+  try {
+    // Get git remote URL
+    const { stdout: remoteUrl } = await execAsync('git remote get-url origin 2>/dev/null || echo "No remote configured"');
+    
+    // Get latest commit info
+    const { stdout: commitInfo } = await execAsync('git log -1 --pretty=format:\'{"commit":"%H","short_commit":"%h","author":"%an","email":"%ae","date":"%ai","message":"%s"}\' 2>/dev/null || echo "{}"');
+    
+    // Get current branch
+    const { stdout: currentBranch } = await execAsync('git branch --show-current 2>/dev/null || echo "unknown"');
+    
+    let parsedCommitInfo = {};
+    try {
+      parsedCommitInfo = JSON.parse(commitInfo.trim() || '{}');
+    } catch {
+      parsedCommitInfo = {};
+    }
+    
+    // Convert SSH URL to HTTPS for display
+    let displayUrl = remoteUrl.trim();
+    if (displayUrl.startsWith('git@github.com:')) {
+      displayUrl = displayUrl.replace('git@github.com:', 'https://github.com/');
+      if (displayUrl.endsWith('.git')) {
+        displayUrl = displayUrl.slice(0, -4);
+      }
+    }
+    
+    return {
+      repository_url: displayUrl,
+      branch: currentBranch.trim(),
+      commit: parsedCommitInfo.commit || 'unknown',
+      short_commit: parsedCommitInfo.short_commit || 'unknown',
+      commit_message: parsedCommitInfo.message || 'No commit message',
+      commit_author: parsedCommitInfo.author || 'Unknown',
+      commit_email: parsedCommitInfo.email || '',
+      commit_date: parsedCommitInfo.date || 'Unknown'
+    };
+  } catch (error) {
+    console.warn('Failed to get git info:', error);
+    return {
+      repository_url: 'Not available',
+      branch: 'unknown',
+      commit: 'unknown',
+      short_commit: 'unknown',
+      commit_message: 'Git information not available',
+      commit_author: 'Unknown',
+      commit_email: '',
+      commit_date: 'Unknown'
+    };
+  }
+}
+
+// Generate mock process details for demo mode
+function generateMockProcessDetails(processId: string) {
+  const processNames = ['web-server', 'api-gateway', 'auth-service', 'database-worker', 'redis-client', 'notification-service', 'file-processor', 'analytics-engine'];
+  const processName = processNames[parseInt(processId) % processNames.length] || 'demo-process';
+  
+  const uptime = Math.floor(Math.random() * 86400 * 7); // Random uptime up to 7 days
+  const memory = Math.floor(Math.random() * 200 + 50) * 1024 * 1024; // 50-250MB
+  const cpu = Math.random() * 30; // 0-30%
+  
+  return {
+    basic: {
+      pid: 1000 + parseInt(processId),
+      name: `${processName}-${processId}`,
+      pm_id: parseInt(processId),
+      status: 'online',
+      uptime,
+      restarts: Math.floor(Math.random() * 5),
+      unstable_restarts: Math.floor(Math.random() * 2)
+    },
+    resources: {
+      cpu,
+      memory,
+      heap_size: `${Math.floor(memory / 1024 / 1024 * 0.8)}MB`,
+      heap_usage: `${Math.floor(Math.random() * 100)}%`,
+      used_heap_size: `${Math.floor(memory / 1024 / 1024 * 0.6)}MB`,
+      active_handles: `${Math.floor(Math.random() * 20)}`,
+      active_requests: `${Math.floor(Math.random() * 10)}`
+    },
+    performance: {
+      loop_delay: `${(Math.random() * 2).toFixed(2)}ms`,
+      event_loop_latency: `${(Math.random() * 5).toFixed(2)}ms`,
+      http_mean_latency: `${(Math.random() * 100).toFixed(2)}ms`,
+      http_p95_latency: `${(Math.random() * 300).toFixed(2)}ms`
+    },
+    environment: {
+      node_version: '18.17.0',
+      exec_interpreter: 'node',
+      exec_mode: 'fork',
+      instances: 1,
+      pm_exec_path: `/app/${processName}/index.js`,
+      pm_cwd: `/app/${processName}`,
+      args: ['--port', '3000'],
+      env: {
+        NODE_ENV: 'production',
+        PORT: '3000',
+        API_KEY: '***HIDDEN***'
+      }
+    },
+    logs: {
+      out_log_path: `/app/logs/${processName}-out.log`,
+      err_log_path: `/app/logs/${processName}-error.log`,
+      pid_path: `/app/pids/${processName}.pid`,
+      merge_logs: false
+    },
+    timestamps: {
+      created_at: Date.now() - uptime * 1000,
+      pm_uptime: Date.now() - uptime * 1000,
+      last_restart: Date.now() - Math.floor(Math.random() * uptime * 1000)
+    },
+    monitoring: {
+      'Loop delay': { value: `${(Math.random() * 2).toFixed(2)}ms`, type: 'internal', unit: 'ms', historic: true },
+      'Used Heap Size': { value: `${Math.floor(memory / 1024 / 1024 * 0.6)}MB`, type: 'internal', unit: 'MB', historic: true },
+      'Heap Usage': { value: Math.floor(Math.random() * 100), type: 'internal', unit: '%', historic: true }
+    }
+  };
+}
+
 // Helper function to safely get metric value
 function getMetricValue(metrics: any, key: string): string {
   try {
@@ -21,30 +144,39 @@ export async function GET(
     const resolvedParams = await params;
     const processId = resolvedParams.id;
     
-    // Get detailed process information
-    const { stdout } = await execAsync(`pm2 show ${processId} --format json`);
-    const processData = JSON.parse(stdout);
+    // Get git information
+    const gitInfo = await getGitInfo();
     
-    if (!processData || processData.length === 0) {
+    // Return demo process details if in Vercel/demo mode
+    if (isVercelOrDemo) {
+      const detailedInfo = generateMockProcessDetails(processId);
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...detailedInfo,
+          git: gitInfo,
+          demoMode: true,
+          message: 'This is demo process data. Deploy to a server with PM2 for real process details.'
+        }
+      });
+    }
+    
+    // Get all processes in JSON format
+    const { stdout } = await execAsync('pm2 jlist');
+    const processList = JSON.parse(stdout);
+    
+    // Find the specific process by ID
+    const process = processList.find((p: any) => p.pm_id === parseInt(processId));
+    
+    if (!process) {
       return NextResponse.json(
         { success: false, error: 'Process not found' },
         { status: 404 }
       );
     }
 
-    const process = processData[0];
-    
-    // Get additional process metrics if available
-    let metrics: any = {};
-    try {
-      const { stdout: metricsData } = await execAsync(`pm2 show ${processId} --format json`);
-      const metricsJson = JSON.parse(metricsData);
-      if (metricsJson[0]?.pm2_env?.axm_monitor) {
-        metrics = metricsJson[0].pm2_env.axm_monitor;
-      }
-    } catch (error) {
-      console.warn('Could not fetch metrics:', error);
-    }
+    // Extract metrics from axm_monitor if available
+    const metrics = process.pm2_env?.axm_monitor || {};
 
     // Calculate uptime
     const uptime = process.pm2_env?.pm_uptime 
@@ -97,7 +229,8 @@ export async function GET(
         pm_uptime: process.pm2_env?.pm_uptime,
         last_restart: process.pm2_env?.restart_time
       },
-      monitoring: metrics
+      monitoring: metrics,
+      git: gitInfo
     };
 
     return NextResponse.json({
@@ -149,6 +282,17 @@ export async function PUT(
     const resolvedParams = await params;
     const processId = resolvedParams.id;
     const { action, ...options } = await request.json();
+    
+    // Return demo response if in Vercel/demo mode
+    if (isVercelOrDemo) {
+      return NextResponse.json({
+        success: true,
+        message: `Demo: Process ${processId} ${action} operation completed`,
+        output: `[DEMO] ${action} operation simulated successfully`,
+        error: '',
+        demoMode: true
+      });
+    }
     
     let command = '';
     

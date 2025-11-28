@@ -1,15 +1,5 @@
 [
   {
-    "id": "1c70beb4-60e9-493d-8cce-dcd590925570",
-    "name": "my Fyntl-Server",
-    "secret": "b6aad848479363a82d161e137d495c34deb8a38e41ec2318f4c0395d6c26919d",
-    "publicKey": "4388cdf4d3807488838fe61a7ef8a8f4",
-    "hostname": "my Fyntl-Server",
-    "ip": "",
-    "lastSeen": 0,
-    "isActive": false
-  },
-  {
     "id": "36e5d10d-24b0-47e3-91ca-0761ee68d717",
     "name": "jdbc",
     "secret": "0b4be50fb0d20b75886323ad31fb4c1dc0d61eeb89792bfbd0970aca79973c3f",
@@ -1253,15 +1243,5 @@
       "cpu_count": 2,
       "node_version": "v18.16.1"
     }
-  },
-  {
-    "id": "7d7dc93a-0c07-41f1-9f90-1493b32f9952",
-    "name": "ASDCCIS",
-    "secret": "c0db9106b204abd0da7316bc579548130075096aa7822bd332b16ebc061b775f",
-    "publicKey": "e0f2de3ba4c2df782122979596ec4563",
-    "hostname": "ASDCCIS",
-    "ip": "",
-    "lastSeen": 0,
-    "isActive": false
   }
 ]

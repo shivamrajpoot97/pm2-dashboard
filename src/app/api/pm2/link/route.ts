@@ -299,7 +299,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await saveLinkedServers(servers);
+    await saveLinkedServers(updatedServers);
 
     return NextResponse.json({
       success: true,

@@ -1,8 +1,36 @@
+export interface GitInfo {
+  url?: string;
+  repoName?: string;
+  branch?: string;
+  commit?: {
+    short?: string;
+    long?: string;
+    message?: string;
+    author?: string;
+    email?: string;
+    date?: string;
+  };
+  remotes?: string[];
+  comment?: string;
+  update_time?: number;
+  unstaged?: boolean;
+  ahead?: boolean;
+  next_rev?: string;
+  prev_rev?: string;
+}
+
 export interface ProcessInfo {
   pid: number;
   name: string;
   pm_id: number;
-  status: 'online' | 'stopped' | 'stopping' | 'waiting restart' | 'launching' | 'errored' | 'one-launch-status';
+  status:
+    | 'online'
+    | 'stopped'
+    | 'stopping'
+    | 'waiting restart'
+    | 'launching'
+    | 'errored'
+    | 'one-launch-status';
   restart_time: number;
   created_at: number;
   pm2_env: {
@@ -82,10 +110,11 @@ export interface ProcessInfo {
     axm_dynamic: any;
     vizion: boolean;
     node_version: string;
+    versioning?: GitInfo;
   };
   monit: {
-    memory: number;
-    cpu: number;
+  memory: number;
+  cpu: number;
   };
 }
 
@@ -102,6 +131,8 @@ export interface PM2Data {
   processes: ProcessInfo[];
   system: SystemInfo;
   timestamp: number;
+  source?: 'local' | 'linked';
+  serverName?: string;
 }
 
 export interface ChartDataPoint {

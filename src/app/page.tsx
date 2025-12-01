@@ -12,6 +12,7 @@ import { LinkedServers } from '@/components/LinkedServers';
 import { SystemProfiling } from '@/components/SystemProfiling';
 import { ProcessDetailsModal } from '@/components/ProcessDetailsModal';
 import { RealTimeMetrics } from '@/components/RealTimeMetrics';
+
 import { PM2Data, ChartDataPoint } from '@/types/pm2';
 import { generateChartData } from '@/lib/mockData';
 import { Plus, Link, TrendingUp } from 'lucide-react';
@@ -307,7 +308,6 @@ export default function Dashboard() {
           processes={pm2Data!.processes}
           systemInfo={pm2Data!.system}
         />
-        
         {/* Charts and System Metrics */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <MetricsChart 

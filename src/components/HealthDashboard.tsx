@@ -192,7 +192,7 @@ export function HealthDashboard({ processId, processName }: HealthDashboardProps
                   <div className="flex items-center justify-center mb-2">
                     <CheckCircle className="h-6 w-6 text-green-400" />
                   </div>
-                  <p className="text-2xl font-bold text-green-400">{summary.uptimePercentage.toFixed(1)}%</p>
+                  <p className="text-2xl font-bold text-green-400">{(summary.uptimePercentage || 0).toFixed(1)}%</p>
                   <p className="text-sm text-gray-400">Uptime</p>
                 </div>
                 
@@ -200,7 +200,7 @@ export function HealthDashboard({ processId, processName }: HealthDashboardProps
                   <div className="flex items-center justify-center mb-2">
                     <Zap className="h-6 w-6 text-blue-400" />
                   </div>
-                  <p className="text-2xl font-bold text-blue-400">{summary.avgCpu.toFixed(1)}%</p>
+                  <p className="text-2xl font-bold text-blue-400">{(summary.avgCpu || 0).toFixed(1)}%</p>
                   <p className="text-sm text-gray-400">Avg CPU</p>
                 </div>
                 
@@ -208,7 +208,7 @@ export function HealthDashboard({ processId, processName }: HealthDashboardProps
                   <div className="flex items-center justify-center mb-2">
                     <MemoryStick className="h-6 w-6 text-purple-400" />
                   </div>
-                  <p className="text-2xl font-bold text-purple-400">{formatBytes(summary.avgMemory)}</p>
+                  <p className="text-2xl font-bold text-purple-400">{formatBytes(summary.avgMemory || 0)}</p>
                   <p className="text-sm text-gray-400">Avg Memory</p>
                 </div>
                 
@@ -216,7 +216,7 @@ export function HealthDashboard({ processId, processName }: HealthDashboardProps
                   <div className="flex items-center justify-center mb-2">
                     <Clock className="h-6 w-6 text-yellow-400" />
                   </div>
-                  <p className="text-2xl font-bold text-yellow-400">{summary.avgResponseTime.toFixed(0)}ms</p>
+                  <p className="text-2xl font-bold text-yellow-400">{(summary.avgResponseTime || 0).toFixed(0)}ms</p>
                   <p className="text-sm text-gray-400">Avg Response</p>
                 </div>
               </div>
@@ -288,23 +288,23 @@ export function HealthDashboard({ processId, processName }: HealthDashboardProps
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div>
               <p className="text-gray-400 text-sm">Peak CPU</p>
-              <p className="text-xl font-bold text-red-400">{summary.peakCpu.toFixed(1)}%</p>
+              <p className="text-xl font-bold text-red-400">{(summary.peakCpu || 0).toFixed(1)}%</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Peak Memory</p>
-              <p className="text-xl font-bold text-red-400">{formatBytes(summary.peakMemory)}</p>
+              <p className="text-xl font-bold text-red-400">{formatBytes(summary.peakMemory || 0)}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Restarts</p>
-              <p className="text-xl font-bold text-orange-400">{summary.totalRestarts}</p>
+              <p className="text-xl font-bold text-orange-400">{summary.totalRestarts || 0}</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Error Rate</p>
-              <p className="text-xl font-bold text-yellow-400">{summary.avgErrorRate.toFixed(2)}%</p>
+              <p className="text-xl font-bold text-yellow-400">{(summary.avgErrorRate || 0).toFixed(2)}%</p>
             </div>
             <div>
               <p className="text-gray-400 text-sm">Data Points</p>
-              <p className="text-xl font-bold text-blue-400">{summary.dataPoints}</p>
+              <p className="text-xl font-bold text-blue-400">{summary.dataPoints || 0}</p>
             </div>
           </div>
         </div>

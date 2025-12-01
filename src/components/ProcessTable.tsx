@@ -2,7 +2,7 @@
 
 import { ProcessInfo } from '@/types/pm2';
 import { formatBytes, formatUptime, getStatusBadgeColor, formatCpuUsage } from '@/lib/utils';
-import { Play, Square, RotateCcw, Trash2, Eye, Settings, GitBranch, GitCommit } from 'lucide-react';
+import { Play, Square, RotateCcw, Trash2, Eye, Settings, GitBranch, GitCommit, Activity } from 'lucide-react';
 
 interface ProcessTableProps {
   processes: ProcessInfo[];
@@ -244,6 +244,14 @@ export function ProcessTable({ processes, onAction }: ProcessTableProps) {
                         title="Details"
                       >
                         <Settings className="h-4 w-4" />
+                      </button>
+                      
+                      <button
+                        onClick={() => handleAction('profiling', process.pm_id)}
+                        className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 rounded transition-colors"
+                        title="App Profiling"
+                      >
+                        <Activity className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

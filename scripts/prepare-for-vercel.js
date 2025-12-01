@@ -6,7 +6,8 @@ import { join } from 'path';
 // File mappings: original -> vercel version
 const fileMappings = {
   'src/app/api/pm2/route.ts': 'src/app/api/pm2/route-vercel.ts',
-  'src/app/api/pm2/system/route.ts': 'src/app/api/pm2/system/route-vercel.ts'
+  'src/app/api/pm2/system/route.ts': 'src/app/api/pm2/system/route-vercel.ts',
+  'src/app/api/pm2/link/route.ts': 'src/app/api/pm2/link/route-vercel.ts'
 };
 
 const backupSuffix = '.original';

@@ -145,6 +145,8 @@ async function getGitInfo(processPath: string): Promise<any> {
       results.commit = { long: longCommit.trim() };
     } catch {}
 
+
+    
     try {
       const { stdout: shortCommit } = await execAsync(
         'git rev-parse --short HEAD',
